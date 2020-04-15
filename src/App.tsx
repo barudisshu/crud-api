@@ -1,6 +1,8 @@
-import React from "react";
-import axios, { CancelTokenSource } from "axios";
-import "./App.css";
+/** @format */
+
+import React from 'react';
+import axios, {CancelTokenSource} from 'axios';
+import './App.css';
 
 interface IPost {
   userId: number;
@@ -14,6 +16,7 @@ interface IState {
   error: string;
   cancelTokenSource?: CancelTokenSource;
   loading: boolean;
+  editPost: IPost;
 }
 
 class App extends React.Component<{}, IState> {
@@ -21,45 +24,60 @@ class App extends React.Component<{}, IState> {
     super(props);
     this.state = {
       posts: [],
-      error: "",
+      error: '',
       loading: true,
+      editPost: {
+        body: '',
+        title: '',
+        userId: 1,
+      },
     };
   }
+
   public componentDidMount() {
     const cancelToken = axios.CancelToken;
     const cancelTokenSource = cancelToken.source();
-    this.setState({ cancelTokenSource });
+    this.setState({cancelTokenSource});
     axios
-      .get<IPost[]>("https://jsonplaceholder.typicode.com/posts", {
+      .get<IPost[]>('https://jsonplaceholder.typicode.com/posts', {
         cancelToken: cancelTokenSource.token,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         timeout: 5000,
       })
-      .then((response) => {
-        this.setState({ posts: response.data, loading: false });
+      .then(response => {
+        this.setState({posts: response.data, loading: false});
       })
-      .catch((ex) => {
+      .catch(ex => {
         const error = axios.isCancel(ex)
-          ? "Request cancelled"
-          : ex.code === "ECONNABORTED"
-          ? "A timeout has occurred"
+          ? 'Request cancelled'
+          : ex.code === 'ECONNABORTED'
+          ? 'A timeout has occurred'
           : ex.response.status === 404
-          ? "Resource not found"
-          : "An unexpected error has occurred";
-        this.setState({ error, loading: false });
+          ? 'Resource not found'
+          : 'An unexpected error has occurred';
+        this.setState({error, loading: false});
       });
-      cancelTokenSource.cancel("User cancelled operation");
+    cancelTokenSource.cancel('User cancelled operation');
   }
+
   public render() {
     return (
       <div className="App">
-        {this.state.loading && (
-          <button onClick={this.handleCancelClick}>Cancel</button>
-        )}
+        <div className="post-edit">
+          <input
+            type="text"
+            placeholder="Enter title"
+            value={this.state.editPost.title}
+            onChange={this.handleTitleChange}
+          />
+          <textarea placeholder="Enter body" value={this.state.editPost.body} onChange={this.handleBodyChange} />
+          <button onClick={this.handleSaveClick}>Save</button>
+        </div>
+        {this.state.loading && <button onClick={this.handleCancelClick}>Cancel</button>}
         <ul className="posts">
-          {this.state.posts.map((post) => (
+          {this.state.posts.map(post => (
             <li key={post.id}>
               <h3>{post.title}</h3>
               <p>{post.body}</p>
@@ -70,10 +88,51 @@ class App extends React.Component<{}, IState> {
       </div>
     );
   }
+
   private handleCancelClick = () => {
     if (this.state.cancelTokenSource) {
-      this.state.cancelTokenSource.cancel("user cancelled operation");
+      this.state.cancelTokenSource.cancel('user cancelled operation');
     }
+  };
+
+  private handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({
+      editPost: {
+        ...this.state.editPost,
+        title: e.currentTarget.value,
+      },
+    });
+  };
+
+  private handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    this.setState({
+      editPost: {
+        ...this.state.editPost,
+        body: e.currentTarget.value,
+      },
+    });
+  };
+
+  private handleSaveClick = () => {
+    axios
+      .post<IPost>(
+        'https://jsonplaceholder.typicode.com/posts',
+        {
+          body: this.state.editPost.body,
+          title: this.state.editPost.title,
+          userId: this.state.editPost.userId,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+      .then(response => {
+        this.setState({
+          posts: this.state.posts.concat(response.data),
+        });
+      });
   };
 }
 
