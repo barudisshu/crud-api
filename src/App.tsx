@@ -125,7 +125,7 @@ const App: React.FC = () => {
         <button onClick={handleSaveClick}>Save</button>
       </div>
       {loading && <button onClick={handleCancelClick}>Cancel</button>}
-      <ul className="posts">
+      <ul className="posts" data-testid="posts">
         {posts.map(post => (
           <li key={post.id}>
             <h3>{post.title}</h3>
